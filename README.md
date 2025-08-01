@@ -1,16 +1,15 @@
 # Quantified Self Dashboard
 
-A personal health and wellness dashboard that integrates with various data sources including Oura Ring, Rivian, Xcel smart meter, BMI scale, weather, and investments. Built with Node.js, TypeScript, and React.
+A personal health and wellness dashboard that integrates with Oura Ring and other health data sources. Built with Node.js, TypeScript, React, and Material-UI.
 
 ## Features
 
-- 🔐 **Secure 2FA Authentication** - Restricted to authorized email addresses
-- 📊 **Oura Ring Integration** - Real-time health metrics and sleep analysis
-- 📈 **Interactive Charts** - Beautiful visualizations using Recharts
-- 🎨 **Modern UI** - Dark theme with Material-UI components
-- 📱 **Responsive Design** - Works on desktop and mobile devices
-- 🔄 **Real-time Data** - Live updates from connected devices
-- 📋 **Trend Analysis** - Historical data insights and recommendations
+- 🔐 **Secure Authentication** with 2FA
+- 📊 **Oura Ring Integration** - Real-time health data
+- 📈 **Interactive Dashboards** with charts and trends
+- 🎨 **Modern UI** with Material-UI components
+- 🔄 **OAuth 2.0 Flow** for secure API access
+- 📱 **Responsive Design** for all devices
 
 ## Tech Stack
 
@@ -18,24 +17,25 @@ A personal health and wellness dashboard that integrates with various data sourc
 - **Node.js** with TypeScript
 - **Express.js** for API server
 - **JWT** for authentication
-- **Axios** for HTTP requests
 - **Winston** for logging
 - **Helmet** for security
+- **CORS** and rate limiting
 
 ### Frontend
 - **React** with TypeScript
-- **Material-UI** for components
+- **Material-UI** v5 for components
 - **Recharts** for data visualization
 - **React Router** for navigation
 - **Axios** for API calls
 
-## Prerequisites
+## Quick Start
 
-- Node.js (v16 or higher)
+### Prerequisites
+- Node.js 18+ 
 - npm or yarn
-- Oura Ring account with API access
+- Oura Ring account and API credentials
 
-## Installation
+### Installation
 
 1. **Clone the repository**
    ```bash
@@ -50,95 +50,55 @@ A personal health and wellness dashboard that integrates with various data sourc
 
 3. **Set up environment variables**
    ```bash
-   cp env.example .env
+   cp .env.example .env
    ```
    
-   Edit `.env` and add your configuration:
+   Edit `.env` with your configuration:
    ```env
    # Server Configuration
    PORT=3001
-   NODE_ENV=development
-   
-   # JWT Configuration
-   JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-   JWT_EXPIRES_IN=24h
+   JWT_SECRET=your-jwt-secret
    
    # Oura Ring API Configuration
    OURA_CLIENT_ID=your-oura-client-id
    OURA_CLIENT_SECRET=your-oura-client-secret
    OURA_REDIRECT_URI=http://localhost:3001/api/auth/oura/callback
    
-   # Allowed Email for 2FA
-   ALLOWED_EMAIL=douglas@gennetten.com
+   # Email Configuration (for 2FA)
+   SMTP_HOST=smtp.your-provider.com
+   SMTP_PORT=587
+   SMTP_USER=your-email@domain.com
+   SMTP_PASS=your-email-password
    ```
 
-4. **Set up Oura Ring API**
-   - Go to [Oura Cloud](https://cloud.ouraring.com/)
-   - Create a new application
-   - Get your Client ID and Client Secret
-   - Add the redirect URI: `http://localhost:3001/api/auth/oura/callback`
-
-## Running the Application
-
-### Development Mode
-
-1. **Start the server**
+4. **Start development servers**
    ```bash
+   # Terminal 1: Backend server
    npm run dev:server
-   ```
-
-2. **Start the client** (in a new terminal)
-   ```bash
+   
+   # Terminal 2: Frontend app
    npm run dev:client
    ```
 
-3. **Or run both simultaneously**
-   ```bash
-   npm run dev
-   ```
+5. **Access the application**
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:3001
 
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:3001
+## Oura Ring Setup
 
-### Production Build
+1. **Create Oura App**
+   - Go to [Oura Cloud](https://cloud.ouraring.com/)
+   - Create a new application
+   - Set redirect URI to: `http://localhost:3001/api/auth/oura/callback`
 
-1. **Build the application**
-   ```bash
-   npm run build
-   ```
+2. **Get API Credentials**
+   - Copy your Client ID and Client Secret
+   - Add them to your `.env` file
 
-2. **Start the production server**
-   ```bash
-   npm start
-   ```
-
-## Usage
-
-### Authentication
-
-1. Navigate to the login page
-2. Enter your email (must be `douglas@gennetten.com`)
-3. Enter your password
-4. Complete 2FA verification with the code sent to your email
-5. Access your personalized dashboard
-
-### Dashboard Features
-
-- **Today's Overview**: View current day's health metrics
-- **7-Day Trends**: Track your progress over the past week
-- **Weekly Averages**: Compare performance across weeks
-- **Insights**: Get personalized recommendations based on your data
-
-### Oura Ring Integration
-
-The dashboard automatically fetches and displays:
-- Sleep Score
-- Activity Score
-- Readiness Score
-- Heart Rate Variability (HRV)
-- Sleep duration and efficiency
-- Step count and calorie burn
+3. **Connect Your Ring**
+   - Login to the dashboard
+   - Click "Connect Oura Ring"
+   - Authorize the application
 
 ## API Endpoints
 
@@ -147,65 +107,97 @@ The dashboard automatically fetches and displays:
 - `POST /api/auth/verify-2fa` - 2FA verification
 - `GET /api/auth/verify` - Token verification
 
-### Oura Data
+### Oura Integration
+- `GET /api/oura/auth/url` - Get OAuth URL
+- `GET /api/auth/oura/callback` - OAuth callback
+- `GET /api/oura/status` - Connection status
 - `GET /api/oura/daily` - Daily activity data
 - `GET /api/oura/sleep` - Sleep data
 - `GET /api/oura/heartrate` - Heart rate data
-- `GET /api/oura/weekly` - Weekly averages
-- `GET /api/oura/today` - Today's summary
 
 ### Dashboard
 - `GET /api/dashboard/overview` - Dashboard overview
 - `GET /api/dashboard/sleep-analysis` - Sleep analysis
 - `GET /api/dashboard/activity-analysis` - Activity analysis
 
-## Deployment
+## Project Structure
 
-### Dreamhost Setup
+```
+quantified-self/
+├── src/
+│   └── server/
+│       ├── index.ts              # Server entry point
+│       ├── routes/               # API routes
+│       ├── services/             # Business logic
+│       ├── middleware/           # Express middleware
+│       └── utils/                # Utilities
+├── client/
+│   ├── src/
+│   │   ├── components/           # React components
+│   │   ├── contexts/             # React contexts
+│   │   └── App.tsx               # Main app component
+│   └── package.json
+├── package.json                  # Root package.json
+└── README.md
+```
 
-1. **Upload your code** to your Dreamhost server
-2. **Set environment variables** in production
-3. **Install dependencies**:
-   ```bash
-   npm install --production
-   cd client && npm install --production
-   ```
-4. **Build the application**:
-   ```bash
-   npm run build
-   ```
-5. **Configure your web server** to serve the application
-6. **Set up SSL certificates** for secure access
+## Development
 
-### Environment Variables for Production
+### Available Scripts
 
-Make sure to update these in production:
-- `NODE_ENV=production`
-- `JWT_SECRET` - Use a strong, unique secret
-- `OURA_CLIENT_ID` and `OURA_CLIENT_SECRET`
-- `OURA_REDIRECT_URI` - Update to your production domain
+```bash
+# Install all dependencies
+npm run install:all
+
+# Development
+npm run dev              # Start both servers
+npm run dev:server       # Start backend only
+npm run dev:client       # Start frontend only
+
+# Build
+npm run build            # Build both
+npm run build:server     # Build backend
+npm run build:client     # Build frontend
+
+# Production
+npm start                # Start production server
+```
+
+### Code Style
+
+- TypeScript for type safety
+- ESLint for code linting
+- Prettier for code formatting
+- Material-UI for consistent UI components
 
 ## Security Features
 
 - **2FA Authentication** - Two-factor authentication required
-- **Email Restriction** - Only authorized emails can access
 - **JWT Tokens** - Secure session management
-- **Rate Limiting** - API rate limiting to prevent abuse
+- **Rate Limiting** - API rate limiting
 - **CORS Protection** - Cross-origin request protection
-- **Helmet Security** - Security headers and protection
+- **Helmet Security** - Security headers
+- **Input Validation** - Request validation
 
-## Future Enhancements
+## Deployment
 
-- [ ] Rivian vehicle data integration
-- [ ] Xcel smart meter energy usage
-- [ ] BMI scale weight tracking
-- [ ] Weather data correlation
-- [ ] Investment portfolio tracking
-- [ ] Database integration (PostgreSQL/MongoDB)
-- [ ] Email notifications
-- [ ] Mobile app
-- [ ] Data export functionality
-- [ ] Advanced analytics and machine learning insights
+### Production Build
+
+```bash
+# Build the application
+npm run build
+
+# Start production server
+npm start
+```
+
+### Environment Variables
+
+Make sure to set all required environment variables in production:
+- `NODE_ENV=production`
+- `JWT_SECRET` (strong secret)
+- `OURA_CLIENT_ID` and `OURA_CLIENT_SECRET`
+- `OURA_REDIRECT_URI` (production URL)
 
 ## Contributing
 
@@ -217,12 +209,15 @@ Make sure to update these in production:
 
 ## License
 
-MIT License - see LICENSE file for details
+This project is licensed under the MIT License.
 
 ## Support
 
-For support or questions, please contact douglas@gennetten.com
+For issues and questions:
+- Check the documentation
+- Review the code comments
+- Open an issue on GitHub
 
 ---
 
-**Note**: This is a personal dashboard application. Make sure to secure your API keys and tokens properly in production environments. 
+**Note**: This is a personal dashboard application. Ensure you have proper authorization to access and store health data. 
