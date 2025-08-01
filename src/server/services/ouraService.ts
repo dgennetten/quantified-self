@@ -50,9 +50,26 @@ class OuraService {
   private baseURL = 'https://api.ouraring.com/v2';
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
+  
+  // In-memory token storage (in production, use a database)
+  private static tokens: {
+    accessToken: string | null;
+    refreshToken: string | null;
+    expiresAt: number | null;
+  } = {
+    accessToken: null,
+    refreshToken: null,
+    expiresAt: null,
+  };
 
   async exchangeCodeForToken(code: string): Promise<OuraTokenResponse> {
     try {
+      logger.info('Attempting to exchange OAuth code for token...');
+      logger.info(`Client ID: ${process.env.OURA_CLIENT_ID ? 'SET' : 'NOT SET'}`);
+      logger.info(`Client Secret: ${process.env.OURA_CLIENT_SECRET ? 'SET' : 'NOT SET'}`);
+      logger.info(`Redirect URI: ${process.env.OURA_REDIRECT_URI}`);
+      logger.info(`Code: ${code.substring(0, 10)}...`);
+
       const response = await axios.post('https://api.ouraring.com/oauth/token', {
         grant_type: 'authorization_code',
         code,
@@ -61,20 +78,36 @@ class OuraService {
         redirect_uri: process.env.OURA_REDIRECT_URI,
       });
 
+      logger.info('OAuth token exchange response received');
       const { access_token, refresh_token, expires_in } = response.data;
+      
+      // Store tokens in static storage
+      OuraService.tokens.accessToken = access_token;
+      OuraService.tokens.refreshToken = refresh_token;
+      OuraService.tokens.expiresAt = Date.now() + (expires_in * 1000);
+      
+      // Also store in instance for backward compatibility
       this.accessToken = access_token;
       this.refreshToken = refresh_token;
 
       logger.info('Successfully obtained Oura access token');
       return { access_token, refresh_token, expires_in };
-    } catch (error) {
+    } catch (error: any) {
       logger.error('Error exchanging code for token:', error);
-      throw new Error('Failed to obtain Oura access token');
+      if (error.response) {
+        logger.error('OAuth error response:', {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      }
+      throw new Error(`Failed to obtain Oura access token: ${error.message}`);
     }
   }
 
   async refreshAccessToken(): Promise<string> {
-    if (!this.refreshToken) {
+    const refreshToken = this.refreshToken || OuraService.tokens.refreshToken;
+    if (!refreshToken) {
       throw new Error('No refresh token available');
     }
 
@@ -87,6 +120,13 @@ class OuraService {
       });
 
       const { access_token, refresh_token } = response.data;
+      
+      // Update stored tokens
+      OuraService.tokens.accessToken = access_token;
+      OuraService.tokens.refreshToken = refresh_token;
+      OuraService.tokens.expiresAt = Date.now() + (3600 * 1000); // Assume 1 hour
+      
+      // Also update instance tokens
       this.accessToken = access_token;
       this.refreshToken = refresh_token;
 
@@ -99,14 +139,21 @@ class OuraService {
   }
 
   private async makeAuthenticatedRequest(endpoint: string): Promise<any> {
-    if (!this.accessToken) {
+    // Check if token is expired
+    if (OuraService.tokens.expiresAt && Date.now() > OuraService.tokens.expiresAt) {
+      logger.info('Oura access token expired, refreshing...');
+      await this.refreshAccessToken();
+    }
+    
+    const accessToken = this.accessToken || OuraService.tokens.accessToken;
+    if (!accessToken) {
       throw new Error('No access token available');
     }
 
     try {
       const response = await axios.get(`${this.baseURL}${endpoint}`, {
         headers: {
-          'Authorization': `Bearer ${this.accessToken}`,
+          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
       });
@@ -160,6 +207,11 @@ class OuraService {
       logger.error('Error fetching Oura personal info:', error);
       throw new Error('Failed to fetch Oura personal info');
     }
+  }
+
+  // Check if we have valid tokens
+  hasValidTokens(): boolean {
+    return !!(OuraService.tokens.accessToken && OuraService.tokens.refreshToken);
   }
 
   // Helper method to calculate weekly averages

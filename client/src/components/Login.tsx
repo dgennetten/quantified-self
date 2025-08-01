@@ -11,6 +11,7 @@ import {
   Container,
 } from '@mui/material';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('douglas@gennetten.com');
@@ -19,17 +20,30 @@ const Login: React.FC = () => {
   const [show2FA, setShow2FA] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login, verify2FA } = useAuth();
+  const { login, verify2FA, isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
+  
+  console.log('Login component: isAuthenticated =', isAuthenticated, 'user =', user);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) return;
+    
     setError('');
     setLoading(true);
 
+    // Clear any existing tokens to ensure fresh login
+    localStorage.removeItem('token');
+
     try {
+      console.log('Attempting login for:', email);
       await login(email, password);
+      console.log('Login successful, showing 2FA');
       setShow2FA(true);
     } catch (error: any) {
+      console.error('Login error:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -38,12 +52,20 @@ const Login: React.FC = () => {
 
   const handle2FAVerification = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Prevent double submission
+    if (loading) return;
+    
     setError('');
     setLoading(true);
 
     try {
+      console.log('Submitting 2FA code:', twoFACode);
       await verify2FA(email, twoFACode);
+      console.log('2FA verification successful, navigating to dashboard...');
+      navigate('/');
     } catch (error: any) {
+      console.error('2FA verification error:', error);
       setError(error.message);
     } finally {
       setLoading(false);
@@ -93,13 +115,25 @@ const Login: React.FC = () => {
                   size="large"
                   disabled={loading || twoFACode.length !== 6}
                   sx={{ mt: 3, mb: 2 }}
+                  onClick={(e) => {
+                    if (loading) {
+                      e.preventDefault();
+                      return;
+                    }
+                  }}
                 >
                   {loading ? <CircularProgress size={24} /> : 'Verify'}
                 </Button>
                 <Button
                   fullWidth
                   variant="text"
-                  onClick={() => setShow2FA(false)}
+                  onClick={() => {
+                    setShow2FA(false);
+                    setError('');
+                    setTwoFACode('');
+                    // Clear any existing tokens to prevent auto-login
+                    localStorage.removeItem('token');
+                  }}
                   disabled={loading}
                 >
                   Back to Login

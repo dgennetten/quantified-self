@@ -11,6 +11,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   verify2FA: (email: string, code: string) => Promise<void>;
+  handleOAuthToken: (token: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -82,17 +83,43 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verify2FA = async (email: string, code: string) => {
     try {
+      console.log('AuthContext: Sending 2FA verification request...');
       const response = await axios.post('http://localhost:3001/api/auth/verify-2fa', {
         email,
         code,
       });
 
+      console.log('AuthContext: 2FA verification response:', response.data);
       const { token, user } = response.data;
       localStorage.setItem('token', token);
       setUser(user);
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      console.log('AuthContext: 2FA verification successful, user set:', user);
     } catch (error: any) {
+      console.error('AuthContext: 2FA verification error:', error);
       throw new Error(error.response?.data?.error || '2FA verification failed');
+    }
+  };
+
+  const handleOAuthToken = async (token: string) => {
+    try {
+      // Verify the token with the server
+      const response = await axios.get('http://localhost:3001/api/auth/verify', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      if (response.data.valid) {
+        localStorage.setItem('token', token);
+        setUser(response.data.user);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        console.log('AuthContext: OAuth token verified successfully');
+      } else {
+        throw new Error('Invalid OAuth token');
+      }
+    } catch (error: any) {
+      console.error('AuthContext: OAuth token verification error:', error);
+      localStorage.removeItem('token');
+      throw new Error('OAuth authentication failed');
     }
   };
 
@@ -107,6 +134,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     login,
     verify2FA,
+    handleOAuthToken,
     logout,
     loading,
   };

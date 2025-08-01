@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import Layout from './components/Layout';
+import OAuthCallback from './components/OAuthCallback';
 
 const theme = createTheme({
   palette: {
@@ -56,7 +57,8 @@ const theme = createTheme({
 });
 
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  console.log('PrivateRoute: isAuthenticated =', isAuthenticated, 'user =', user);
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -68,6 +70,7 @@ const App: React.FC = () => {
         <Router>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/oauth-callback" element={<OAuthCallback />} />
             <Route
               path="/"
               element={

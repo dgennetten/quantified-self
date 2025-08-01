@@ -5,8 +5,26 @@ import { ouraService } from '../services/ouraService';
 const router = express.Router();
 
 // Get dashboard overview
-router.get('/overview', protect, async (req, res, next) => {
+router.get('/overview', protect, async (req: any, res: any, next: any) => {
   try {
+    // Check if Oura is connected
+    const hasOuraConnection = ouraService.hasValidTokens();
+    
+    if (!hasOuraConnection) {
+      // Return empty dashboard when Oura is not connected
+      res.json({
+        success: true,
+        data: {
+          today: null,
+          weeklyAverages: [],
+          insights: {},
+          trendData: [],
+          ouraConnected: false,
+        },
+      });
+      return;
+    }
+
     const today = new Date().toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
@@ -28,15 +46,26 @@ router.get('/overview', protect, async (req, res, next) => {
         weeklyAverages: weeklyAverages.slice(-4), // Last 4 weeks
         insights,
         trendData: trendData.slice(-7), // Last 7 days
+        ouraConnected: true,
       },
     });
   } catch (error) {
-    next(error);
+    // If Oura API fails, return empty dashboard
+    res.json({
+      success: true,
+      data: {
+        today: null,
+        weeklyAverages: [],
+        insights: {},
+        trendData: [],
+        ouraConnected: false,
+      },
+    });
   }
 });
 
 // Get sleep analysis
-router.get('/sleep-analysis', protect, async (req, res, next) => {
+router.get('/sleep-analysis', protect, async (req: any, res: any, next: any) => {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];
@@ -68,7 +97,7 @@ router.get('/sleep-analysis', protect, async (req, res, next) => {
 });
 
 // Get activity analysis
-router.get('/activity-analysis', protect, async (req, res, next) => {
+router.get('/activity-analysis', protect, async (req: any, res: any, next: any) => {
   try {
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const today = new Date().toISOString().split('T')[0];

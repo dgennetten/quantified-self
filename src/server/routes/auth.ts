@@ -1,9 +1,10 @@
 import express from 'express';
-import { body, validationResult } from 'express-validator';
+import { body, validationResult, query } from 'express-validator';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import { logger } from '../utils/logger';
 import { AppError } from '../middleware/errorHandler';
+import { ouraService } from '../services/ouraService';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ const twoFACodes = new Map();
 router.post('/login', [
   body('email').isEmail().normalizeEmail(),
   body('password').isLength({ min: 6 }),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -81,7 +82,7 @@ router.post('/login', [
 router.post('/verify-2fa', [
   body('email').isEmail().normalizeEmail(),
   body('code').isLength({ min: 6, max: 6 }).isNumeric(),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -109,14 +110,12 @@ router.post('/verify-2fa', [
     twoFACodes.delete(email);
 
     // Generate JWT token
-    const token = jwt.sign(
-      { 
-        email: stored2FA.userId,
-        role: 'admin'
-      },
-      process.env.JWT_SECRET!,
-      { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
-    );
+    const secret = process.env.JWT_SECRET || 'fallback-secret';
+    const payload = { 
+      email: stored2FA.userId,
+      role: 'admin'
+    };
+    const token = jwt.sign(payload, secret, { expiresIn: 86400 }); // 24 hours in seconds
 
     res.json({
       success: true,
@@ -133,7 +132,7 @@ router.post('/verify-2fa', [
 });
 
 // Verify token endpoint
-router.get('/verify', (req, res, next) => {
+router.get('/verify', (req: any, res: any, next: any) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
     
@@ -141,10 +140,46 @@ router.get('/verify', (req, res, next) => {
       return res.status(401).json({ error: 'No token provided' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    const secret = process.env.JWT_SECRET || 'fallback-secret';
+    const decoded = jwt.verify(token, secret);
     res.json({ valid: true, user: decoded });
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
+  }
+});
+
+// Oura OAuth callback endpoint
+router.get('/oura/callback', [
+  query('code').notEmpty().withMessage('Authorization code is required'),
+], async (req: any, res: any, next: any) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { code } = req.query;
+    const tokenResponse = await ouraService.exchangeCodeForToken(code as string);
+
+    // In production, store tokens securely in database
+    logger.info('Oura authentication successful');
+
+    // Create a temporary JWT token for the OAuth completion
+    const secret = process.env.JWT_SECRET || 'fallback-secret';
+    const payload = { 
+      email: allowedEmail,
+      role: 'admin',
+      ouraConnected: true
+    };
+    const tempToken = jwt.sign(payload, secret, { expiresIn: 300 }); // 5 minutes
+
+    // Redirect to OAuth callback page with success message and temporary token
+    res.redirect(`http://localhost:3000/oauth-callback?oura_connected=true&temp_token=${tempToken}`);
+
+  } catch (error) {
+    logger.error('Oura OAuth callback error:', error);
+    // Redirect to OAuth callback page with error message
+    res.redirect('http://localhost:3000/oauth-callback?oura_error=true');
   }
 });
 

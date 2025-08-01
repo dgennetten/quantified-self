@@ -15,6 +15,12 @@ import dashboardRoutes from './routes/dashboard';
 // Load environment variables
 dotenv.config();
 
+// Debug: Log environment variables (remove in production)
+// logger.info('Environment variables loaded:');
+// logger.info(`OURA_CLIENT_ID: ${process.env.OURA_CLIENT_ID ? 'SET' : 'NOT SET'}`);
+// logger.info(`OURA_CLIENT_SECRET: ${process.env.OURA_CLIENT_SECRET ? 'SET' : 'NOT SET'}`);
+// logger.info(`NODE_ENV: ${process.env.NODE_ENV}`);
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 

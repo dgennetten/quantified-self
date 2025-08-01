@@ -6,10 +6,24 @@ import { logger } from '../utils/logger';
 
 const router = express.Router();
 
+// OAuth initiation endpoint
+router.get('/auth/url', (req: any, res: any) => {
+  const clientId = process.env.OURA_CLIENT_ID;
+  const redirectUri = process.env.OURA_REDIRECT_URI;
+  
+  if (!clientId || !redirectUri) {
+    return res.status(500).json({ error: 'Oura configuration missing' });
+  }
+
+  const authUrl = `https://cloud.ouraring.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=heartrate daily sleep personal`;
+  
+  res.json({ authUrl });
+});
+
 // OAuth callback endpoint
 router.get('/auth/callback', [
   query('code').notEmpty().withMessage('Authorization code is required'),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -37,7 +51,7 @@ router.get('/daily', [
   protect,
   query('start_date').isISO8601().withMessage('Start date must be in ISO format'),
   query('end_date').isISO8601().withMessage('End date must be in ISO format'),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -61,7 +75,7 @@ router.get('/sleep', [
   protect,
   query('start_date').isISO8601().withMessage('Start date must be in ISO format'),
   query('end_date').isISO8601().withMessage('End date must be in ISO format'),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -85,7 +99,7 @@ router.get('/heartrate', [
   protect,
   query('start_date').isISO8601().withMessage('Start date must be in ISO format'),
   query('end_date').isISO8601().withMessage('End date must be in ISO format'),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -105,7 +119,7 @@ router.get('/heartrate', [
 });
 
 // Get personal info
-router.get('/profile', protect, async (req, res, next) => {
+router.get('/profile', protect, async (req: any, res: any, next: any) => {
   try {
     const profileData = await ouraService.getPersonalInfo();
 
@@ -123,7 +137,7 @@ router.get('/weekly', [
   protect,
   query('start_date').isISO8601().withMessage('Start date must be in ISO format'),
   query('end_date').isISO8601().withMessage('End date must be in ISO format'),
-], async (req, res, next) => {
+], async (req: any, res: any, next: any) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -143,8 +157,22 @@ router.get('/weekly', [
   }
 });
 
+// Check Oura connection status
+router.get('/status', protect, (req: any, res: any) => {
+  // Check if we have valid tokens
+  const hasTokens = ouraService.hasValidTokens();
+  
+  res.json({
+    success: true,
+    connected: hasTokens,
+    message: hasTokens 
+      ? 'Oura connection established. Your data is being fetched.'
+      : 'Oura connection not established. Please complete OAuth flow.'
+  });
+});
+
 // Get today's summary
-router.get('/today', protect, async (req, res, next) => {
+router.get('/today', protect, async (req: any, res: any, next: any) => {
   try {
     const today = new Date().toISOString().split('T')[0];
     const dailyData = await ouraService.getDailyData(today, today);

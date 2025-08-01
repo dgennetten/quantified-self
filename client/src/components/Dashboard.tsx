@@ -34,12 +34,14 @@ import {
   Cell,
 } from 'recharts';
 import axios from 'axios';
+import OuraConnection from './OuraConnection';
 
 interface DashboardData {
   today: any;
   weeklyAverages: any[];
   insights: any;
   trendData: any[];
+  ouraConnected?: boolean;
 }
 
 const Dashboard: React.FC = () => {
@@ -100,9 +102,15 @@ const Dashboard: React.FC = () => {
 
   if (!data) {
     return (
-      <Alert severity="info">
-        No data available. Please connect your Oura ring to see your health metrics.
-      </Alert>
+      <Box>
+        <Typography variant="h4" gutterBottom>
+          Today's Overview
+        </Typography>
+        <OuraConnection />
+        <Alert severity="info">
+          No data available. Please connect your Oura ring to see your health metrics.
+        </Alert>
+      </Box>
     );
   }
 
@@ -112,9 +120,18 @@ const Dashboard: React.FC = () => {
         Today's Overview
       </Typography>
 
+      {/* Oura Connection Component - only show if not connected */}
+      {!data.ouraConnected && <OuraConnection />}
+
       {/* Today's Scores */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      
+      {!data.ouraConnected ? (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          Connect your Oura Ring to see your health metrics and scores.
+        </Alert>
+      ) : (
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          <Grid item xs={12} sm={6} md={3}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -207,8 +224,10 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
+      )}
 
       {/* Trends and Insights */}
+      {data.ouraConnected && (
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid item xs={12} md={8}>
           <Card>
@@ -291,9 +310,10 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
       </Grid>
+      )}
 
       {/* Insights */}
-      {data.insights && (
+      {data.ouraConnected && data.insights && (
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>
