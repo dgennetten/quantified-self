@@ -158,7 +158,15 @@ router.get('/oura/callback', [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // Check if environment variables are set
+    if (!process.env.OURA_CLIENT_ID || !process.env.OURA_CLIENT_SECRET) {
+      logger.error('Oura OAuth configuration missing');
+      return res.redirect('http://localhost:3000/oauth-callback?oura_error=config_missing');
+    }
+
     const { code } = req.query;
+    logger.info('Received OAuth code, attempting token exchange...');
+    
     const tokenResponse = await ouraService.exchangeCodeForToken(code as string);
 
     // In production, store tokens securely in database
@@ -176,10 +184,21 @@ router.get('/oura/callback', [
     // Redirect to OAuth callback page with success message and temporary token
     res.redirect(`http://localhost:3000/oauth-callback?oura_connected=true&temp_token=${tempToken}`);
 
-  } catch (error) {
+  } catch (error: any) {
     logger.error('Oura OAuth callback error:', error);
-    // Redirect to OAuth callback page with error message
-    res.redirect('http://localhost:3000/oauth-callback?oura_error=true');
+    
+    // Provide more specific error messages
+    let errorType = 'unknown';
+    if (error.message.includes('400')) {
+      errorType = 'invalid_request';
+    } else if (error.message.includes('401')) {
+      errorType = 'unauthorized';
+    } else if (error.message.includes('403')) {
+      errorType = 'forbidden';
+    }
+    
+    // Redirect to OAuth callback page with specific error message
+    res.redirect(`http://localhost:3000/oauth-callback?oura_error=${errorType}`);
   }
 });
 

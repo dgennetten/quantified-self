@@ -15,36 +15,13 @@ router.get('/auth/url', (req: any, res: any) => {
     return res.status(500).json({ error: 'Oura configuration missing' });
   }
 
+  // Use the auth route callback instead of oura route callback
   const authUrl = `https://cloud.ouraring.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=heartrate daily sleep personal`;
   
   res.json({ authUrl });
 });
 
-// OAuth callback endpoint
-router.get('/auth/callback', [
-  query('code').notEmpty().withMessage('Authorization code is required'),
-], async (req: any, res: any, next: any) => {
-  try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
 
-    const { code } = req.query;
-    const tokenResponse = await ouraService.exchangeCodeForToken(code as string);
-
-    // In production, store tokens securely in database
-    logger.info('Oura authentication successful');
-
-    res.json({
-      success: true,
-      message: 'Oura authentication successful',
-      // Don't send tokens in response for security
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 // Get daily data
 router.get('/daily', [

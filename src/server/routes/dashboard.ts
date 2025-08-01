@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/auth';
 import { ouraService } from '../services/ouraService';
+import { logger } from '../utils/logger';
 
 const router = express.Router();
 
@@ -26,20 +27,41 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
     }
 
     const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
-    // Get today's data
-    const todayData = await ouraService.getDailyData(today, today);
+    // Get yesterday's data (more likely to have complete data)
+    const todayData = await ouraService.getDailyData(yesterday, yesterday);
     const todaySummary = todayData[0] || null;
+    
+    console.log('=== DASHBOARD DEBUG ===');
+    console.log('Yesterday date:', yesterday);
+    console.log('Today data length:', todayData.length);
+    console.log('Today data:', JSON.stringify(todayData, null, 2));
+    console.log('Today summary:', JSON.stringify(todaySummary, null, 2));
+    console.log('=== END DEBUG ===');
 
-    // Get 30-day trend data
-    const trendData = await ouraService.getDailyData(thirtyDaysAgo, today);
+    // Get 30-day trend data (ending yesterday for more complete data)
+    const trendData = await ouraService.getDailyData(thirtyDaysAgo, yesterday);
     const weeklyAverages = ouraService.calculateWeeklyAverages(trendData);
 
     // Calculate insights
     const insights = calculateInsights(trendData, todaySummary);
+    
+    // Debug: Check what fields are available in the data
+    if (todaySummary) {
+      console.log('=== FIELD DEBUG ===');
+      console.log('Available fields in todaySummary:', Object.keys(todaySummary));
+      console.log('Sample values:', {
+        sleep_score: todaySummary.sleep_score,
+        activity_score: todaySummary.activity_score,
+        readiness_score: todaySummary.readiness_score,
+        hrv: todaySummary.hrv
+      });
+      console.log('=== END FIELD DEBUG ===');
+    }
 
-    res.json({
+    const responseData = {
       success: true,
       data: {
         today: todaySummary,
@@ -48,8 +70,15 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
         trendData: trendData.slice(-7), // Last 7 days
         ouraConnected: true,
       },
-    });
+    };
+    
+    console.log('=== RESPONSE DATA ===');
+    console.log('Response data:', JSON.stringify(responseData, null, 2));
+    console.log('=== END RESPONSE ===');
+    
+    res.json(responseData);
   } catch (error) {
+    logger.error('Dashboard error:', error);
     // If Oura API fails, return empty dashboard
     res.json({
       success: true,
@@ -205,5 +234,49 @@ function calculateActivityInsights(dailyData: any[]) {
     },
   };
 }
+
+// Debug endpoint to check available data
+router.get('/debug', protect, async (req: any, res: any, next: any) => {
+  try {
+    const hasOuraConnection = ouraService.hasValidTokens();
+    
+    if (!hasOuraConnection) {
+      return res.json({ error: 'Oura not connected' });
+    }
+
+    // Try different date ranges
+    const today = new Date().toISOString().split('T')[0];
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+    const todayData = await ouraService.getDailyData(today, today);
+    const yesterdayData = await ouraService.getDailyData(yesterday, yesterday);
+    const weekData = await ouraService.getDailyData(weekAgo, today);
+
+    res.json({
+      success: true,
+      debug: {
+        hasConnection: hasOuraConnection,
+        today,
+        yesterday,
+        weekAgo,
+        todayData: {
+          length: todayData.length,
+          data: todayData
+        },
+        yesterdayData: {
+          length: yesterdayData.length,
+          data: yesterdayData
+        },
+        weekData: {
+          length: weekData.length,
+          data: weekData.slice(0, 3) // First 3 entries
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 export default router; 

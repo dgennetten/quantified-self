@@ -11,6 +11,7 @@ import { errorHandler } from './middleware/errorHandler';
 import authRoutes from './routes/auth';
 import ouraRoutes from './routes/oura';
 import dashboardRoutes from './routes/dashboard';
+import { ouraService } from './services/ouraService';
 
 // Load environment variables
 dotenv.config();
@@ -66,7 +67,8 @@ app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV 
+    environment: process.env.NODE_ENV,
+    ouraConnected: ouraService.hasValidTokens()
   });
 });
 
