@@ -9,6 +9,8 @@ import {
   Alert,
   Chip,
   LinearProgress,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   TrendingUp,
@@ -41,6 +43,7 @@ interface DashboardData {
   weeklyAverages: any[];
   insights: any;
   trendData: any[];
+  threeMonthTrendData: any[];
   ouraConnected?: boolean;
 }
 
@@ -48,6 +51,7 @@ const Dashboard: React.FC = () => {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [trendTab, setTrendTab] = useState(0);
 
   useEffect(() => {
     fetchDashboardData();
@@ -123,102 +127,83 @@ const Dashboard: React.FC = () => {
       {/* Oura Connection Component - only show if not connected */}
       {!data.ouraConnected && <OuraConnection />}
 
-      {/* Today's Scores */}
+      {/* Today's Scores - More Condensed Layout */}
       
       {!data.ouraConnected ? (
         <Alert severity="info" sx={{ mb: 3 }}>
           Connect your Oura Ring to see your health metrics and scores.
         </Alert>
       ) : (
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Sleep Score
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {data.today?.sleep_score || 0}
-                  </Typography>
-                </Box>
-                <Bed color="primary" sx={{ fontSize: 40 }} />
-              </Box>
+        <Grid container spacing={2} sx={{ mb: 3 }}>
+          <Grid item xs={6} sm={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 2, textAlign: 'center' }}>
+              <Bed color="primary" sx={{ fontSize: 32, mb: 1 }} />
+              <Typography variant="h5" color="primary" gutterBottom>
+                {data.today?.sleep_score || 0}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Sleep Score
+              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={data.today?.sleep_score || 0}
                 color={getScoreColor(data.today?.sleep_score || 0)}
-                sx={{ mt: 2 }}
+                sx={{ height: 6, borderRadius: 3 }}
               />
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Activity Score
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {data.today?.activity_score || 0}
-                  </Typography>
-                </Box>
-                <FitnessCenter color="primary" sx={{ fontSize: 40 }} />
-              </Box>
+        <Grid item xs={6} sm={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 2, textAlign: 'center' }}>
+              <FitnessCenter color="primary" sx={{ fontSize: 32, mb: 1 }} />
+              <Typography variant="h5" color="primary" gutterBottom>
+                {data.today?.activity_score || 0}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Activity Score
+              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={data.today?.activity_score || 0}
                 color={getScoreColor(data.today?.activity_score || 0)}
-                sx={{ mt: 2 }}
+                sx={{ height: 6, borderRadius: 3 }}
               />
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    Readiness Score
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {data.today?.readiness_score || 0}
-                  </Typography>
-                </Box>
-                <Speed color="primary" sx={{ fontSize: 40 }} />
-              </Box>
+        <Grid item xs={6} sm={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 2, textAlign: 'center' }}>
+              <Speed color="primary" sx={{ fontSize: 32, mb: 1 }} />
+              <Typography variant="h5" color="primary" gutterBottom>
+                {data.today?.readiness_score || 0}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                Readiness Score
+              </Typography>
               <LinearProgress
                 variant="determinate"
                 value={data.today?.readiness_score || 0}
                 color={getScoreColor(data.today?.readiness_score || 0)}
-                sx={{ mt: 2 }}
+                sx={{ height: 6, borderRadius: 3 }}
               />
             </CardContent>
           </Card>
         </Grid>
 
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Box display="flex" alignItems="center" justifyContent="space-between">
-                <Box>
-                  <Typography color="textSecondary" gutterBottom>
-                    HRV
-                  </Typography>
-                  <Typography variant="h4" color="primary">
-                    {data.today?.hrv || 0}
-                  </Typography>
-                </Box>
-                <Favorite color="primary" sx={{ fontSize: 40 }} />
-              </Box>
-              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                ms
+        <Grid item xs={6} sm={3}>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 2, textAlign: 'center' }}>
+              <Favorite color="primary" sx={{ fontSize: 32, mb: 1 }} />
+              <Typography variant="h5" color="primary" gutterBottom>
+                {data.today?.hrv || 0}
+              </Typography>
+              <Typography variant="body2" color="textSecondary" gutterBottom>
+                HRV (ms)
               </Typography>
             </CardContent>
           </Card>
@@ -226,27 +211,50 @@ const Dashboard: React.FC = () => {
       </Grid>
       )}
 
-      {/* Trends and Insights */}
+      {/* Trends and Insights - Condensed with Tabs */}
       {data.ouraConnected && (
-      <Grid container spacing={3} sx={{ mb: 4 }}>
+      <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid item xs={12} md={8}>
           <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                7-Day Trends
-              </Typography>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={data.trendData}>
+            <CardContent sx={{ p: 2 }}>
+              <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+                <Tabs value={trendTab} onChange={(e, newValue) => setTrendTab(newValue)}>
+                  <Tab label="7-Day Trend" />
+                  <Tab label="3-Month Trend" />
+                </Tabs>
+              </Box>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={trendTab === 0 ? data.trendData : data.threeMonthTrendData}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis />
-                  <Tooltip />
+                  <XAxis 
+                    dataKey="day" 
+                    tick={{ fontSize: 12 }}
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return trendTab === 0 
+                        ? date.toLocaleDateString('en-US', { weekday: 'short' })
+                        : date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    }}
+                  />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return date.toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      });
+                    }}
+                  />
                   <Line
                     type="monotone"
                     dataKey="sleep_score"
                     stroke="#00d4aa"
                     strokeWidth={2}
                     name="Sleep Score"
+                    dot={false}
                   />
                   <Line
                     type="monotone"
@@ -254,6 +262,7 @@ const Dashboard: React.FC = () => {
                     stroke="#ff6b6b"
                     strokeWidth={2}
                     name="Activity Score"
+                    dot={false}
                   />
                   <Line
                     type="monotone"
@@ -261,6 +270,7 @@ const Dashboard: React.FC = () => {
                     stroke="#4ecdc4"
                     strokeWidth={2}
                     name="Readiness Score"
+                    dot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -269,32 +279,32 @@ const Dashboard: React.FC = () => {
         </Grid>
 
         <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
+          <Card sx={{ height: '100%' }}>
+            <CardContent sx={{ p: 2 }}>
               <Typography variant="h6" gutterBottom>
                 Weekly Averages
               </Typography>
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 1.5 }}>
                 <Typography variant="body2" color="textSecondary">
                   Sleep Score
                 </Typography>
-                <Typography variant="h5" color="primary">
+                <Typography variant="h6" color="primary">
                   {data.weeklyAverages[data.weeklyAverages.length - 1]?.sleep_score_avg?.toFixed(1) || 0}
                 </Typography>
               </Box>
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 1.5 }}>
                 <Typography variant="body2" color="textSecondary">
                   Activity Score
                 </Typography>
-                <Typography variant="h5" color="primary">
+                <Typography variant="h6" color="primary">
                   {data.weeklyAverages[data.weeklyAverages.length - 1]?.activity_score_avg?.toFixed(1) || 0}
                 </Typography>
               </Box>
-              <Box sx={{ mb: 2 }}>
+              <Box sx={{ mb: 1.5 }}>
                 <Typography variant="body2" color="textSecondary">
                   Readiness Score
                 </Typography>
-                <Typography variant="h5" color="primary">
+                <Typography variant="h6" color="primary">
                   {data.weeklyAverages[data.weeklyAverages.length - 1]?.readiness_score_avg?.toFixed(1) || 0}
                 </Typography>
               </Box>
@@ -302,7 +312,7 @@ const Dashboard: React.FC = () => {
                 <Typography variant="body2" color="textSecondary">
                   HRV Average
                 </Typography>
-                <Typography variant="h5" color="primary">
+                <Typography variant="h6" color="primary">
                   {data.weeklyAverages[data.weeklyAverages.length - 1]?.hrv_avg?.toFixed(1) || 0} ms
                 </Typography>
               </Box>
@@ -312,30 +322,32 @@ const Dashboard: React.FC = () => {
       </Grid>
       )}
 
-      {/* Insights */}
+      {/* Insights - More Condensed */}
       {data.ouraConnected && data.insights && (
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
           <Grid item xs={12}>
             <Card>
-              <CardContent>
+              <CardContent sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom>
                   Insights
                 </Typography>
-                <Grid container spacing={2}>
+                <Grid container spacing={1}>
                   {Object.entries(data.insights).map(([key, insight]: [string, any]) => (
-                    <Grid item xs={12} sm={6} md={3} key={key}>
-                      <Box display="flex" alignItems="center" justifyContent="space-between">
-                        <Typography variant="body2" color="textSecondary">
-                          {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                    <Grid item xs={6} sm={3} key={key}>
+                      <Box sx={{ textAlign: 'center', p: 1 }}>
+                        <Box display="flex" alignItems="center" justifyContent="center" sx={{ mb: 1 }}>
+                          <Typography variant="body2" color="textSecondary" sx={{ mr: 1 }}>
+                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                          </Typography>
+                          {getTrendIcon(insight.trend)}
+                        </Box>
+                        <Typography variant="h6" gutterBottom>
+                          {insight.current}
                         </Typography>
-                        {getTrendIcon(insight.trend)}
+                        <Typography variant="caption" color="textSecondary">
+                          Avg: {insight.average?.toFixed(1)}
+                        </Typography>
                       </Box>
-                      <Typography variant="h6">
-                        {insight.current}
-                      </Typography>
-                      <Typography variant="caption" color="textSecondary">
-                        Avg: {insight.average?.toFixed(1)}
-                      </Typography>
                     </Grid>
                   ))}
                 </Grid>

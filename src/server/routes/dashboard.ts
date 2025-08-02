@@ -20,6 +20,7 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
           weeklyAverages: [],
           insights: {},
           trendData: [],
+          threeMonthTrendData: [],
           ouraConnected: false,
         },
       });
@@ -29,6 +30,7 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
     const today = new Date().toISOString().split('T')[0];
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const threeMonthsAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     
     // Get yesterday's data (more likely to have complete data)
     const todayData = await ouraService.getDailyData(yesterday, yesterday);
@@ -44,6 +46,9 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
     // Get 30-day trend data (ending yesterday for more complete data)
     const trendData = await ouraService.getDailyData(thirtyDaysAgo, yesterday);
     const weeklyAverages = ouraService.calculateWeeklyAverages(trendData);
+    
+    // Get 3-month trend data
+    const threeMonthTrendData = await ouraService.getDailyData(threeMonthsAgo, yesterday);
 
     // Calculate insights
     const insights = calculateInsights(trendData, todaySummary);
@@ -68,6 +73,7 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
         weeklyAverages: weeklyAverages.slice(-4), // Last 4 weeks
         insights,
         trendData: trendData.slice(-7), // Last 7 days
+        threeMonthTrendData: threeMonthTrendData.slice(-90), // Last 90 days
         ouraConnected: true,
       },
     };
@@ -87,6 +93,7 @@ router.get('/overview', protect, async (req: any, res: any, next: any) => {
         weeklyAverages: [],
         insights: {},
         trendData: [],
+        threeMonthTrendData: [],
         ouraConnected: false,
       },
     });
