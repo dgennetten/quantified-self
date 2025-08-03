@@ -60,10 +60,23 @@ const Dashboard: React.FC = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:3001/api/dashboard/overview');
-      setData(response.data.data);
+      
+      // Try to fetch from API first
+      try {
+        const response = await axios.get('http://localhost:3001/api/dashboard/overview');
+        setData(response.data.data);
+      } catch (apiError) {
+        // If API fails, use mock data
+        console.log('API not available, using mock data');
+        if (typeof window !== 'undefined' && window.MockAPI) {
+          const mockResponse = await window.MockAPI.getDashboardData();
+          setData(mockResponse.data);
+        } else {
+          throw new Error('No API available and no mock data');
+        }
+      }
     } catch (error: any) {
-      setError(error.response?.data?.error || 'Failed to fetch dashboard data');
+      setError(error.message || 'Failed to fetch dashboard data');
     } finally {
       setLoading(false);
     }
